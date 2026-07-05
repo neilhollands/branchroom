@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A local-first classroom tool for creating simple branching videos."
+    />
+    <title>Branchroom — Branching Video Studio</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Branchroom home">
+        <span class="brand-mark" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <span>
+          <strong>Branchroom</strong>
+          <small>Branching Video Studio</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <button class="button ghost" id="helpButton">How it works</button>
+        <button class="button ghost" id="loadProjectButton">Open project</button>
+        <button class="button ghost" id="saveProjectButton">Save project</button>
+        <button class="button primary" id="previewButton">
+          <span aria-hidden="true">▶</span> Preview
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="panel media-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Your ingredients</p>
+            <h2>Media</h2>
+          </div>
+          <button class="icon-button" id="addFilesButton" title="Add media files" aria-label="Add media files">+</button>
+        </div>
+        <button class="folder-drop" id="folderButton">
+          <span class="folder-icon" aria-hidden="true">⌁</span>
+          <span><strong>Choose a media folder</strong><small>Videos and still images stay on this device</small></span>
+        </button>
+        <div class="media-toolbar">
+          <span id="mediaCount">0 items</span>
+          <button class="text-button" id="relinkButton">Relink files</button>
+        </div>
+        <div class="media-list" id="mediaList"></div>
+        <div class="privacy-note">
+          <span aria-hidden="true">✓</span>
+          <p><strong>Private by design</strong><br />Your media is not uploaded anywhere.</p>
+        </div>
+      </aside>
+
+      <section class="canvas-shell" aria-label="Story map">
+        <div class="canvas-toolbar">
+          <div>
+            <p class="eyebrow">Project</p>
+            <input id="projectTitle" class="project-title" value="My branching story" aria-label="Project title" />
+          </div>
+          <div class="canvas-actions">
+            <button class="button compact" id="addSceneButton">+ Add scene</button>
+            <button class="button compact" id="fitButton">Fit map</button>
+          </div>
+        </div>
+        <div class="canvas-viewport" id="canvasViewport">
+          <div class="canvas-grid"></div>
+          <svg class="connections" id="connections" aria-hidden="true"></svg>
+          <div class="scene-layer" id="sceneLayer"></div>
+          <div class="canvas-hint" id="canvasHint">
+            <strong>Build your story here</strong>
+            <span>Add a scene, then connect choices to other scenes.</span>
+          </div>
+        </div>
+        <div class="map-legend">
+          <span><i class="legend-dot start"></i> Start scene</span>
+          <span><i class="legend-dot choice"></i> Choice</span>
+          <span><i class="legend-dot ending"></i> Ending</span>
+        </div>
+      </section>
+
+      <aside class="panel inspector-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Selected scene</p>
+            <h2>Inspector</h2>
+          </div>
+          <button class="icon-button subtle" id="deleteSceneButton" title="Delete selected scene" aria-label="Delete selected scene">×</button>
+        </div>
+        <div id="emptyInspector" class="empty-inspector">
+          <span aria-hidden="true">↖</span>
+          <strong>Select a scene</strong>
+          <p>Choose a card on the map to edit its media, playback, text, and choices.</p>
+        </div>
+        <form id="sceneInspector" class="inspector-form hidden">
+          <label>
+            <span>Scene name</span>
+            <input id="sceneTitle" type="text" />
+          </label>
+          <label>
+            <span>Media</span>
+            <select id="sceneMedia"></select>
+          </label>
+          <fieldset>
+            <legend>Playback</legend>
+            <label class="radio-row"><input type="radio" name="playback" value="hold" /> Play once, hold last frame</label>
+            <label class="radio-row"><input type="radio" name="playback" value="loop" /> Loop continuously</label>
+          </fieldset>
+          <label id="stillDurationRow">
+            <span>Still duration <small>(seconds)</small></span>
+            <input id="stillDuration" type="number" min="1" max="300" value="5" />
+          </label>
+          <div class="section-heading">
+            <div><span>Overlays</span><small>Text and clickable choices</small></div>
+            <button type="button" class="mini-button" id="addOverlayButton">+ Add</button>
+          </div>
+          <div id="overlayList" class="overlay-list"></div>
+          <label class="start-toggle">
+            <input id="startSceneToggle" type="checkbox" />
+            <span><strong>Start story here</strong><small>This scene plays first.</small></span>
+          </label>
+        </form>
+      </aside>
+    </main>
+
+    <input id="fileInput" type="file" accept="video/*,image/*" multiple hidden />
+    <input id="folderInput" type="file" accept="video/*,image/*" webkitdirectory multiple hidden />
+    <input id="projectInput" type="file" accept=".json,application/json" hidden />
+
+    <dialog id="welcomeDialog" class="welcome-dialog">
+      <button class="dialog-close" data-close-dialog aria-label="Close">×</button>
+      <div class="welcome-art" aria-hidden="true">
+        <div class="mini-map">
+          <i class="m-node one"></i><i class="m-line a"></i><i class="m-line b"></i>
+          <i class="m-node two"></i><i class="m-node three"></i>
+        </div>
+      </div>
+      <div class="welcome-copy">
+        <p class="eyebrow">Welcome to Branchroom</p>
+        <h1>Turn short clips into<br /><em>choose-your-own stories.</em></h1>
+        <p>Everything happens in your browser. Your videos and images remain on your computer.</p>
+        <ol class="steps">
+          <li><span>1</span><div><strong>Bring in your media</strong><small>Select a folder or choose individual files.</small></div></li>
+          <li><span>2</span><div><strong>Map the possibilities</strong><small>Create scenes and add choices that lead elsewhere.</small></div></li>
+          <li><span>3</span><div><strong>Preview and share</strong><small>Test the paths and save your project file.</small></div></li>
+        </ol>
+        <div class="welcome-actions">
+          <button class="button primary large" id="startBlankButton">Start a blank project</button>
+          <button class="button ghost large" id="sampleButton">Explore a sample</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="previewDialog" class="preview-dialog">
+      <div class="preview-topbar">
+        <div><strong id="previewProjectTitle">My branching story</strong><small>Interactive preview</small></div>
+        <div>
+          <button class="button ghost compact" id="restartPreviewButton">↻ Restart</button>
+          <button class="dialog-close inline" data-close-dialog aria-label="Close preview">×</button>
+        </div>
+      </div>
+      <div class="player-stage" id="playerStage">
+        <video id="playerVideo" playsinline></video>
+        <img id="playerImage" alt="" />
+        <div class="player-placeholder" id="playerPlaceholder">
+          <span>BR</span><strong>Media not linked</strong><small>Return to the editor and choose the matching files.</small>
+        </div>
+        <div class="player-overlays" id="playerOverlays"></div>
+      </div>
+      <div class="preview-footer">
+        <span id="previewSceneName">Scene</span>
+        <span id="previewProgress"></span>
+      </div>
+    </dialog>
+
+    <dialog id="overlayDialog" class="small-dialog">
+      <form method="dialog" id="overlayForm">
+        <div class="modal-heading">
+          <div><p class="eyebrow">Scene overlay</p><h2 id="overlayDialogTitle">Add an overlay</h2></div>
+          <button class="dialog-close inline" value="cancel" aria-label="Close">×</button>
+        </div>
+        <label>
+          <span>Type</span>
+          <select id="overlayType">
+            <option value="choice">Choice button</option>
+            <option value="text">Text</option>
+          </select>
+        </label>
+        <label>
+          <span>Words shown on screen</span>
+          <input id="overlayText" required maxlength="80" placeholder="e.g. Open the mysterious door" />
+        </label>
+        <label id="overlayTargetRow">
+          <span>Go to scene</span>
+          <select id="overlayTarget"></select>
+        </label>
+        <div class="two-columns">
+          <label><span>Horizontal position</span><select id="overlayX"><option value="left">Left</option><option value="center" selected>Centre</option><option value="right">Right</option></select></label>
+          <label><span>Vertical position</span><select id="overlayY"><option value="top">Top</option><option value="center">Centre</option><option value="bottom" selected>Bottom</option></select></label>
+        </div>
+        <div class="modal-actions">
+          <button class="button ghost" value="cancel">Cancel</button>
+          <button class="button primary" id="confirmOverlayButton" value="default">Add overlay</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
