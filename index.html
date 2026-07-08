@@ -25,6 +25,7 @@
         <button class="button ghost" id="helpButton">How it works</button>
         <button class="button ghost" id="loadProjectButton">Open project</button>
         <button class="button ghost" id="saveProjectButton">Save project</button>
+        <button class="button ghost" id="shareProjectButton">Share project</button>
         <button class="button primary" id="previewButton">
           <span aria-hidden="true">▶</span> Preview
         </button>
@@ -42,16 +43,16 @@
         </div>
         <button class="folder-drop" id="folderButton">
           <span class="folder-icon" aria-hidden="true">⌁</span>
-          <span><strong>Choose a media folder</strong><small>Videos and still images stay on this device</small></span>
+          <span><strong>Choose media files</strong><small>Open a folder, then select its files · nothing is uploaded</small></span>
         </button>
         <div class="media-toolbar">
           <span id="mediaCount">0 items</span>
-          <button class="text-button" id="relinkButton">Relink files</button>
+          <button class="text-button" id="relinkButton">Find missing files</button>
         </div>
         <div class="media-list" id="mediaList"></div>
         <div class="privacy-note">
           <span aria-hidden="true">✓</span>
-          <p><strong>Private by design</strong><br />Your media is not uploaded anywhere.</p>
+          <p><strong>Private by design</strong><br />Project files remember names, not copies of your media.</p>
         </div>
       </aside>
 
@@ -60,10 +61,16 @@
           <div>
             <p class="eyebrow">Project</p>
             <input id="projectTitle" class="project-title" value="My branching story" aria-label="Project title" />
+            <p class="project-instruction">To add a scene, drag a media file on to the project window.</p>
           </div>
           <div class="canvas-actions">
-            <button class="button compact" id="addSceneButton">+ Add scene</button>
+            <button class="button compact" id="addSceneButton">+ Add title</button>
             <button class="button compact" id="fitButton">Fit map</button>
+            <div class="zoom-controls" aria-label="Stage zoom controls">
+              <button type="button" id="zoomOutButton" aria-label="Zoom out" title="Zoom out">−</button>
+              <button type="button" id="zoomLabel" aria-label="Reset zoom" title="Reset zoom to 100%">100%</button>
+              <button type="button" id="zoomInButton" aria-label="Zoom in" title="Zoom in">+</button>
+            </div>
           </div>
         </div>
         <div class="canvas-viewport" id="canvasViewport">
@@ -74,11 +81,7 @@
             <strong>Build your story here</strong>
             <span>Add a scene, then connect choices to other scenes.</span>
           </div>
-        </div>
-        <div class="map-legend">
-          <span><i class="legend-dot start"></i> Start scene</span>
-          <span><i class="legend-dot choice"></i> Choice</span>
-          <span><i class="legend-dot ending"></i> Ending</span>
+          <div class="canvas-navigation-hint">Drag empty space to move · Scroll to zoom</div>
         </div>
       </section>
 
@@ -104,17 +107,29 @@
             <span>Media</span>
             <select id="sceneMedia"></select>
           </label>
-          <fieldset>
+          <fieldset id="videoPlaybackOptions">
             <legend>Playback</legend>
-            <label class="radio-row"><input type="radio" name="playback" value="hold" /> Play once, hold last frame</label>
+            <label class="radio-row"><input type="radio" name="playback" value="hold" /> Play once, (last frame holds if button is added)</label>
             <label class="radio-row"><input type="radio" name="playback" value="loop" /> Loop continuously</label>
           </fieldset>
-          <label id="stillDurationRow">
-            <span>Still duration <small>(seconds)</small></span>
-            <input id="stillDuration" type="number" min="1" max="300" value="5" />
-          </label>
+          <fieldset id="imagePlaybackOptions" class="hidden">
+            <legend>Image playback</legend>
+            <label class="radio-row"><input type="radio" name="imagePlayback" value="still" /> Still image</label>
+            <label class="radio-row"><input type="radio" name="imagePlayback" value="timed" /> Timed image</label>
+          </fieldset>
+          <div id="timedImageOptions" class="hidden">
+            <label>
+              <span>Still duration <small>(seconds)</small></span>
+              <input id="stillDuration" type="number" min="1" max="300" value="5" />
+            </label>
+            <label>
+              <span>Go to scene</span>
+              <select id="timedTargetScene"></select>
+            </label>
+          </div>
+          <p id="playbackUnavailable" class="inspector-note hidden">Choose media to set its playback.</p>
           <div class="section-heading">
-            <div><span>Overlays</span><small>Text and clickable choices</small></div>
+            <div><span>Overlays / destinations</span><small>Text, choices, and automatic routes</small></div>
             <button type="button" class="mini-button" id="addOverlayButton">+ Add</button>
           </div>
           <div id="overlayList" class="overlay-list"></div>
@@ -127,7 +142,6 @@
     </main>
 
     <input id="fileInput" type="file" accept="video/*,image/*" multiple hidden />
-    <input id="folderInput" type="file" accept="video/*,image/*" webkitdirectory multiple hidden />
     <input id="projectInput" type="file" accept=".json,application/json" hidden />
 
     <dialog id="welcomeDialog" class="welcome-dialog">
@@ -143,7 +157,7 @@
         <h1>Turn short clips into<br /><em>choose-your-own stories.</em></h1>
         <p>Everything happens in your browser. Your videos and images remain on your computer.</p>
         <ol class="steps">
-          <li><span>1</span><div><strong>Bring in your media</strong><small>Select a folder or choose individual files.</small></div></li>
+          <li><span>1</span><div><strong>Bring in your media</strong><small>Open a folder and select the files you want to use.</small></div></li>
           <li><span>2</span><div><strong>Map the possibilities</strong><small>Create scenes and add choices that lead elsewhere.</small></div></li>
           <li><span>3</span><div><strong>Preview and share</strong><small>Test the paths and save your project file.</small></div></li>
         </ol>
@@ -179,14 +193,15 @@
     <dialog id="overlayDialog" class="small-dialog">
       <form method="dialog" id="overlayForm">
         <div class="modal-heading">
-          <div><p class="eyebrow">Scene overlay</p><h2 id="overlayDialogTitle">Add an overlay</h2></div>
-          <button class="dialog-close inline" value="cancel" aria-label="Close">×</button>
+          <div><p class="eyebrow">Scene overlay / destination</p><h2 id="overlayDialogTitle">Add an overlay / destination</h2></div>
+          <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
         </div>
         <label>
           <span>Type</span>
           <select id="overlayType">
             <option value="choice">Choice button</option>
             <option value="text">Text</option>
+            <option value="destination">After playback destination</option>
           </select>
         </label>
         <label>
@@ -202,11 +217,210 @@
           <label><span>Vertical position</span><select id="overlayY"><option value="top">Top</option><option value="center">Centre</option><option value="bottom" selected>Bottom</option></select></label>
         </div>
         <div class="modal-actions">
-          <button class="button ghost" value="cancel">Cancel</button>
-          <button class="button primary" id="confirmOverlayButton" value="default">Add overlay</button>
+          <button type="button" class="button ghost" data-close-dialog>Cancel</button>
+          <button type="submit" class="button primary" id="confirmOverlayButton" value="default">Add overlay</button>
         </div>
       </form>
     </dialog>
+
+    <dialog id="titleDialog" class="small-dialog">
+      <form method="dialog" id="titleForm">
+        <div class="modal-heading">
+          <div><p class="eyebrow">Title card</p><h2>Add a title</h2></div>
+          <button class="dialog-close inline" value="cancel" aria-label="Close">×</button>
+        </div>
+        <label>
+          <span>Title text</span>
+          <input id="titleCardText" maxlength="80" placeholder="e.g. Act One: The Choice" />
+        </label>
+        <div class="title-colour-row">
+          <label>
+            <span>Background colour</span>
+            <input id="titleCardColor" type="color" value="#050505" />
+          </label>
+          <label>
+            <span>Text colour</span>
+            <input id="titleCardTextColor" type="color" value="#ffffff" />
+          </label>
+        </div>
+        <p class="dialog-message">This creates a flat title card to help organize your project map.</p>
+        <div class="modal-actions">
+          <button class="button ghost" value="cancel">Cancel</button>
+          <button class="button primary" id="confirmTitleButton" value="default">Add title</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="mediaRemovalDialog" class="small-dialog media-removal-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow" id="mediaRemovalEyebrow">Media library</p>
+          <h2 id="mediaRemovalTitle">Remove media?</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <div class="missing-file-summary">
+        <span class="missing-file-icon" aria-hidden="true">!</span>
+        <div>
+          <strong id="mediaRemovalName"></strong>
+          <small id="mediaRemovalStatus"></small>
+        </div>
+      </div>
+      <p class="dialog-message" id="mediaRemovalMessage"></p>
+      <div class="modal-actions">
+        <button type="button" class="button ghost" data-close-dialog>Keep file</button>
+        <button type="button" class="button danger" id="confirmRemoveMediaButton">Remove from project</button>
+      </div>
+    </dialog>
+
+    <dialog id="saveFailedDialog" class="small-dialog save-failed-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Project file</p>
+          <h2>Save did not complete</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <p class="dialog-message">
+        Branchroom could not save the project JSON file. This JSON is the data that records how your media files are assembled into a branching video.
+      </p>
+      <p class="dialog-message">
+        You can still view and copy the JSON, then save it as a plain text file or email it to your teacher.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="button ghost" data-close-dialog>Cancel</button>
+        <button type="button" class="button primary" id="viewFailedJsonButton">View JSON</button>
+      </div>
+    </dialog>
+
+    <dialog id="projectJsonDialog" class="small-dialog json-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow" id="projectJsonEyebrow">Project JSON</p>
+          <h2 id="projectJsonTitle">Project data</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <p class="dialog-message" id="projectJsonMessage">
+        This text records how the media files are assembled into the branching video. Copy it and save it as plain text if downloading is blocked.
+      </p>
+      <textarea id="projectJsonText" class="json-textarea" readonly spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="button ghost" data-close-dialog>Close</button>
+        <button type="button" class="button primary" id="copyProjectJsonButton">Copy JSON</button>
+      </div>
+    </dialog>
+
+    <dialog id="openProjectDialog" class="small-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Open project</p>
+          <h2>How would you like to open it?</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <p class="dialog-message">
+        Open a saved Branchroom JSON file from your computer, or paste JSON text if the file was shared by email.
+      </p>
+      <div class="modal-actions split-actions">
+        <button type="button" class="button ghost" data-close-dialog>Cancel</button>
+        <button type="button" class="button ghost" id="openLocalProjectButton">Open file on local drive</button>
+        <button type="button" class="button primary" id="openPasteProjectButton">Paste JSON</button>
+      </div>
+    </dialog>
+
+    <dialog id="pasteProjectDialog" class="small-dialog json-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Paste JSON</p>
+          <h2>Open pasted project</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <p class="dialog-message">
+        Paste the Branchroom project JSON below, then choose Enter. This restores the story map; you may still need to relink the media files.
+      </p>
+      <textarea id="pasteProjectJsonText" class="json-textarea" spellcheck="false" placeholder="Paste Branchroom JSON here"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="button ghost" data-close-dialog>Cancel</button>
+        <button type="button" class="button primary" id="confirmPasteProjectButton">Enter</button>
+      </div>
+    </dialog>
+
+    <dialog id="shareProjectDialog" class="small-dialog share-project-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Work together</p>
+          <h2>Share a project</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <section class="share-section">
+        <h3>To submit your project</h3>
+        <ol class="share-steps">
+          <li><span>1</span><p>Upload every media file used in this project to the teacher-provided Google Drive folder.</p></li>
+          <li><span>2</span><p>Copy the JSON below. This is the project data that records how your media files are assembled.</p></li>
+          <li><span>3</span><p>Email the copied JSON to <strong>neil.hollands@georgebrown.ca</strong> with the subject <strong>Branching Video</strong>. Do not add extra text to the email.</p></li>
+        </ol>
+      </section>
+      <textarea id="shareProjectJsonText" class="json-textarea share-json" readonly spellcheck="false"></textarea>
+      <section class="share-section">
+        <h3>To open a shared project</h3>
+        <ol class="share-steps">
+          <li><span>1</span><p>Download the project media files.</p></li>
+          <li><span>2</span><p>Choose <strong>Open project</strong>, then open a .branchroom.json file or paste JSON from an email.</p></li>
+          <li><span>3</span><p>Choose <strong>Find missing files</strong> and select all the media files from the shared folder.</p></li>
+        </ol>
+      </section>
+      <p class="share-warning"><strong>Keep media filenames unchanged.</strong> Branchroom uses them to reconnect the project.</p>
+      <div class="modal-actions">
+        <a class="button ghost" href="mailto:neil.hollands@georgebrown.ca?subject=Branching%20Video">Open email</a>
+        <button type="button" class="button ghost" data-close-dialog>Close</button>
+        <button type="button" class="button primary" id="copyShareJsonButton">Copy JSON</button>
+      </div>
+    </dialog>
+
+    <dialog id="trimDialog" class="small-dialog trim-dialog">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Video playback range</p>
+          <h2 id="trimDialogTitle">Set playback range</h2>
+        </div>
+        <button type="button" class="dialog-close inline" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <video id="trimVideo" class="trim-video" playsinline controls></video>
+      <div class="trim-timeline" aria-label="Video trim timeline">
+        <label>
+          <span>Start time <strong id="trimStartLabel">0:00.0</strong></span>
+          <input id="trimStartRange" type="range" min="0" max="0" step="0.01" value="0" />
+        </label>
+        <label>
+          <span>End time <strong id="trimEndLabel">0:00.0</strong></span>
+          <input id="trimEndRange" type="range" min="0" max="0" step="0.01" value="0" />
+        </label>
+      </div>
+      <p class="dialog-message">Drag either marker to choose the part of the movie that should play in this scene.</p>
+      <div class="modal-actions">
+        <button type="button" class="button ghost" id="cancelTrimButton">Cancel</button>
+        <button type="button" class="button ghost" id="resetTrimButton">Reset</button>
+        <button type="button" class="button primary" id="applyTrimButton">Apply</button>
+      </div>
+    </dialog>
+
+    <div id="mediaContextMenu" class="context-menu hidden" role="menu" aria-label="Media actions">
+      <button id="contextDeleteMediaButton" class="context-menu-item danger" role="menuitem">
+        <span aria-hidden="true">×</span> Delete
+      </button>
+    </div>
+
+    <div id="sceneContextMenu" class="context-menu hidden" role="menu" aria-label="Scene actions">
+      <button id="contextTrimSceneButton" class="context-menu-item" role="menuitem">
+        <span aria-hidden="true">↔</span> Set playback range
+      </button>
+      <button id="contextDeleteSceneButton" class="context-menu-item danger" role="menuitem">
+        <span aria-hidden="true">×</span> Delete scene
+      </button>
+    </div>
 
     <div class="toast" id="toast" role="status"></div>
     <script type="module" src="./app.js"></script>

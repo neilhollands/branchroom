@@ -4,7 +4,9 @@ Branchroom is a local-first browser app for building short, interactive branchin
 
 ## V1 features
 
-- Select a local folder or individual video/image files
+- Select multiple video/image files from a local folder
+- Remove media from a project without deleting the original files
+- See previously saved but unlinked files as greyed-out missing items
 - Drag media onto a visual branching canvas
 - Reposition scene cards and see connections between choices
 - Add text overlays and clickable choice buttons
@@ -44,7 +46,9 @@ Branchroom saves a human-readable JSON document containing:
 - overlay text, placement, and destinations
 - a media manifest with filenames, types, and stable IDs
 
-When a project is reopened, choose **Relink files** and select its media folder. Files are matched by filename.
+When a project is reopened, choose **Find missing files**, open its media folder, and select any files you want to reconnect. Imports are always additive: files already linked in the current session remain linked, and files can be reconnected one at a time or in groups.
+
+The project JSON stores the complete media manifest—including filenames, types, sizes, modification dates, and whether each item was linked when saved—but it does not copy the media itself. For easiest organization, save the `.branchroom.json` file beside the project's media folder.
 
 ## Roadmap
 
